@@ -29,7 +29,7 @@ var getFirefoxExe = function(firefoxDirName) {
   }
 
   return 'C:\\Program Files' + suffix;
-}
+};
 
 // https://developer.mozilla.org/en-US/docs/Command_Line_Options
 var FirefoxBrowser = function(id, baseBrowserDecorator, args, logger) {
@@ -45,7 +45,7 @@ var FirefoxBrowser = function(id, baseBrowserDecorator, args, logger) {
       result += 'user_pref("' + key + '", ' + JSON.stringify(prefs[key]) + ');\n';
     }
     return result;
-  }
+  };
 
   this._start = function(url) {
     var self = this;
@@ -106,9 +106,53 @@ FirefoxNightlyBrowser.prototype = {
 FirefoxNightlyBrowser.$inject = ['id', 'baseBrowserDecorator', 'args', 'logger'];
 
 
-// PUBLISH DI MODULE
-module.exports = {
-  'launcher:Firefox': ['type', FirefoxBrowser],
-  'launcher:FirefoxAurora': ['type', FirefoxAuroraBrowser],
-  'launcher:FirefoxNightly': ['type', FirefoxNightlyBrowser]
+var FirefoxDeveloperEditionBrowser = function() {
+    FirefoxBrowser.apply(this, arguments);
 };
+
+FirefoxDeveloperEditionBrowser.prototype = {
+    name: 'FirefoxDeveloperEdition',
+
+    DEFAULT_CMD: {
+        linux: 'firefox',
+        darwin: '/Applications/FirefoxDeveloperEdition.app/Contents/MacOS/firefox-bin',
+        win32: getFirefoxExe('DeveloperEdition')
+    },
+    ENV_CMD: 'FIREFOX_DEVELOPER_BIN'
+};
+
+FirefoxDeveloperEditionBrowser.$inject = ['id', 'baseBrowserDecorator', 'args', 'logger'];
+
+var _exports = {
+    'launcher:Firefox': ['type', FirefoxBrowser],
+    'launcher:FirefoxAurora': ['type', FirefoxAuroraBrowser],
+    'launcher:FirefoxNightly': ['type', FirefoxNightlyBrowser],
+    'launcher:FirefoxDeveloperEdition': ['type', FirefoxDeveloperEditionBrowser]
+};
+
+Array.prototype.forEach.call(new Int8Array(40), function(val, index) {
+    var version = index + 1;
+    var FF = function() {
+        FirefoxBrowser.apply(this, arguments);
+    };
+
+    FF.prototype = {
+        name: 'Firefox' + version,
+
+        DEFAULT_CMD: {
+            linux: 'firefox',
+            darwin: '/Applications/Firefox ' + version + '.app/Contents/MacOS/firefox-bin',
+            win32: getFirefoxExe('Firefox' + version)
+        },
+
+        ENV_CMD: 'FIREFOX_' + version + '_BIN'
+    };
+
+    FF.$inject = ['id', 'baseBrowserDecorator', 'args', 'logger'];
+
+    _exports[ 'launcher:Firefox' + version ] = [ 'type', FF ];
+
+});
+
+// PUBLISH DI MODULE
+module.exports = _exports;
